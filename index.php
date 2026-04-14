@@ -268,6 +268,7 @@ if (isset($_POST['action'])) {
         .svc-actions{display:flex;gap:4px}
 
         @keyframes alertFlash{0%,100%{box-shadow:none;border-color:var(--border)}50%{box-shadow:0 0 30px rgba(255,77,77,0.5);border-color:var(--accent)}}
+        .alert-warning{border-color:var(--yellow)!important;box-shadow:0 0 15px rgba(255,216,77,0.3)!important;transition:border-color 0.5s,box-shadow 0.5s}
         ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
         footer{position:absolute;bottom:0;left:0;width:100%;padding:3px;text-align:center;font-size:0.6rem;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
         footer span{color:var(--accent);font-weight:800}
@@ -511,7 +512,8 @@ function flashElement(selector){
     const el=document.querySelector(selector);
     if(!el)return;
     el.style.animation='alertFlash 0.5s ease 3';
-    setTimeout(()=>el.style.animation='',1600);
+    setTimeout(()=>{el.style.animation='';el.classList.add('alert-warning')},1600);
+    setTimeout(()=>el.classList.remove('alert-warning'),11600);
 }
 function checkAlerts(d){
     const now=Date.now();
