@@ -2,9 +2,21 @@
 // === API ENDPOINTS ===
 if (isset($_GET['data'])) {
     header('Content-Type: application/json');
-    $load = sys_getloadavg();
-    $nproc = intval(trim(shell_exec("nproc 2>/dev/null"))) ?: 1;
-    $cpu_usage = round(($load[0] / $nproc) * 100, 2);
+    // CPU usage real from /proc/stat (two samples)
+    $stat1 = file_get_contents('/proc/stat');
+    usleep(500000); // 0.5s sample
+    $stat2 = file_get_contents('/proc/stat');
+    preg_match('/^cpu\s+(.+)$/m', $stat1, $m1);
+    preg_match('/^cpu\s+(.+)$/m', $stat2, $m2);
+    $c1 = array_map('intval', preg_split('/\s+/', trim($m1[1])));
+    $c2 = array_map('intval', preg_split('/\s+/', trim($m2[1])));
+    $idle1 = $c1[3] + ($c1[4] ?? 0);
+    $idle2 = $c2[3] + ($c2[4] ?? 0);
+    $total1 = array_sum($c1);
+    $total2 = array_sum($c2);
+    $total_diff = $total2 - $total1;
+    $idle_diff = $idle2 - $idle1;
+    $cpu_usage = $total_diff > 0 ? round((1 - $idle_diff / $total_diff) * 100, 2) : 0;
     $free = shell_exec('free -t'); $free = trim($free); $free_arr = explode("\n", $free);
     $mem = explode(" ", preg_replace('/\s+/', ' ', $free_arr[1]));
     $mem_total = round($mem[1]/1024); $mem_used = round($mem[2]/1024);
