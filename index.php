@@ -267,6 +267,7 @@ if (isset($_POST['action'])) {
         .svc-status{font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700}
         .svc-actions{display:flex;gap:4px}
 
+        @keyframes alertFlash{0%,100%{box-shadow:none;border-color:var(--border)}50%{box-shadow:0 0 30px rgba(255,77,77,0.5);border-color:var(--accent)}}
         ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
         footer{position:absolute;bottom:0;left:0;width:100%;padding:3px;text-align:center;font-size:0.6rem;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase}
         footer span{color:var(--accent);font-weight:800}
@@ -464,6 +465,79 @@ function sendChat(model){
     })
 }
 
+// Process modal
+function showProcess(p){
+    const cn=p.command.split('/').pop().split(' ')[0];
+    openModal(
+        '<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center"><span>'+cn+'</span><span style="font-size:0.8rem;color:var(--text-muted)">PID '+p.pid+'</span></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">'+
+            '<div style="background:rgba(255,77,77,0.05);border:1px solid rgba(255,77,77,0.15);border-radius:10px;padding:12px;text-align:center"><div class="label-sm">CPU</div><div style="font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;color:'+getColor(parseFloat(p.cpu))+'">'+p.cpu+'%</div></div>'+
+            '<div style="background:rgba(77,200,255,0.05);border:1px solid rgba(77,200,255,0.15);border-radius:10px;padding:12px;text-align:center"><div class="label-sm">MEMORY</div><div style="font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;color:'+getColor(parseFloat(p.mem))+'">'+p.mem+'%</div></div>'+
+        '</div>'+
+        '<div class="modal-row"><span class="modal-label">User</span><span class="modal-val">'+p.user+'</span></div>'+
+        '<div class="modal-row"><span class="modal-label">RSS Memory</span><span class="modal-val">'+p.rss+' MB</span></div>'+
+        '<div class="modal-row"><span class="modal-label">Full Command</span><span class="modal-val" style="font-size:0.75rem;word-break:break-all">'+p.command+'</span></div>'+
+        '<div style="margin-top:16px"><div class="label-sm" style="margin-bottom:8px">ACTIONS</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+            '<button class="action-btn green" style="padding:10px;font-size:0.8rem" onclick="doAction(\'renice\',{pid:\''+p.pid+'\',nice:\'10\'});closeModal()">NICE + (Lower Priority)</button>'+
+            '<button class="action-btn cyan" style="padding:10px;font-size:0.8rem" onclick="doAction(\'renice\',{pid:\''+p.pid+'\',nice:\'-5\'});closeModal()">NICE - (Higher Priority)</button>'+
+            '<button class="action-btn yellow" style="padding:10px;font-size:0.8rem" onclick="confirmKill(\''+p.pid+'\',\''+cn+'\',\'kill_process\')">KILL (SIGTERM)</button>'+
+            '<button class="action-btn" style="padding:10px;font-size:0.8rem" onclick="confirmKill(\''+p.pid+'\',\''+cn+'\',\'kill9_process\')">KILL -9 (SIGKILL)</button>'+
+        '</div></div>'
+    );
+}
+function confirmKill(pid,name,action){
+    openModal('<div class="modal-title">KILL PROCESS</div><div style="text-align:center;padding:20px;font-size:1.1rem">Terminar <b style="color:var(--accent)">'+name+'</b> (PID '+pid+')?</div><div class="modal-actions" style="justify-content:center"><button class="action-btn" style="padding:10px 30px;font-size:0.9rem" onclick="closeModal();doAction(\''+action+'\',{pid:\''+pid+'\'})">SI, MATAR</button><button class="action-btn green" style="padding:10px 30px;font-size:0.9rem" onclick="closeModal()">CANCELAR</button></div>');
+}
+
+// Alert system with sound
+let alertCooldown={};
+function playAlertSound(){
+    try{
+        const ctx=new(window.AudioContext||window.webkitAudioContext)();
+        const osc=ctx.createOscillator();const gain=ctx.createGain();
+        osc.connect(gain);gain.connect(ctx.destination);
+        osc.type='square';osc.frequency.value=800;
+        gain.gain.value=0.15;
+        osc.start();osc.frequency.setValueAtTime(800,ctx.currentTime);
+        osc.frequency.setValueAtTime(600,ctx.currentTime+0.1);
+        osc.frequency.setValueAtTime(800,ctx.currentTime+0.2);
+        gain.gain.setValueAtTime(0.15,ctx.currentTime+0.3);
+        gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.4);
+        osc.stop(ctx.currentTime+0.4);
+    }catch(e){}
+}
+function flashElement(selector){
+    const el=document.querySelector(selector);
+    if(!el)return;
+    el.style.animation='alertFlash 0.5s ease 3';
+    setTimeout(()=>el.style.animation='',1600);
+}
+function checkAlerts(d){
+    const now=Date.now();
+    const cpuPct=Math.min(d.cpu,100);
+    if(cpuPct>90&&(!alertCooldown.cpu||now-alertCooldown.cpu>60000)){
+        alertCooldown.cpu=now;playAlertSound();flashElement('#gauge-cpu');
+        showToast('ALERTA: CPU al '+cpuPct.toFixed(0)+'%');
+    }
+    if(d.ram>90&&(!alertCooldown.ram||now-alertCooldown.ram>60000)){
+        alertCooldown.ram=now;playAlertSound();flashElement('#gauge-ram');
+        showToast('ALERTA: RAM al '+d.ram+'%');
+    }
+    if(d.temp>80&&(!alertCooldown.temp||now-alertCooldown.temp>60000)){
+        alertCooldown.temp=now;playAlertSound();flashElement('#gauge-temp');
+        showToast('ALERTA: Temperatura '+d.temp+'°C');
+    }
+    if(d.disk>90&&(!alertCooldown.disk||now-alertCooldown.disk>60000)){
+        alertCooldown.disk=now;playAlertSound();
+        showToast('ALERTA: Disco al '+d.disk+'%');
+    }
+    if(d.battery<15&&d.bat_status!=='Charging'&&(!alertCooldown.bat||now-alertCooldown.bat>60000)){
+        alertCooldown.bat=now;playAlertSound();flashElement('#gauge-bat');
+        showToast('ALERTA: Batería al '+d.battery+'%');
+    }
+}
+
 // Gauges
 function drawGauge(id,pct,color,max){const c=document.getElementById(id);if(!c)return;const dp=2,w=c.offsetWidth*dp,h=c.offsetHeight*dp;c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.clearRect(0,0,w,h);const cx=w/2,cy=h*0.85,r=Math.min(cx,cy)*0.85,sA=Math.PI*1.15,eA=Math.PI*-0.15,rng=eA-sA+2*Math.PI,v=Math.min(pct/(max||100),1);ctx.beginPath();ctx.arc(cx,cy,r,sA,sA+rng);ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=w*0.06;ctx.lineCap='round';ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,r,sA,sA+rng*v);ctx.strokeStyle=color;ctx.lineWidth=w*0.06;ctx.lineCap='round';ctx.shadowColor=color;ctx.shadowBlur=15;ctx.stroke();ctx.shadowBlur=0;for(let i=0;i<=10;i++){const a=sA+(rng*i/10),inn=r-w*0.04,out=r+w*0.04;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*inn,cy+Math.sin(a)*inn);ctx.lineTo(cx+Math.cos(a)*out,cy+Math.sin(a)*out);ctx.strokeStyle=i<=v*10?color:'rgba(255,255,255,0.1)';ctx.lineWidth=i%5===0?2:1;ctx.stroke()}const nA=sA+rng*v,nL=r*0.7;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(nA)*nL,cy+Math.sin(nA)*nL);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
 function setVU(id,p,mx){const c=document.getElementById(id);if(!c)return;const b=c.querySelector('.vu-bar');const v=Math.min(p/(mx||100),1);b.style.height=Math.max(v*100,5)+'%';b.style.background=v>0.8?'var(--accent)':v>0.6?'var(--orange)':v>0.4?'var(--yellow)':'var(--green)';b.style.boxShadow='0 0 6px '+b.style.background}
@@ -505,9 +579,11 @@ function fetchStats(){
         if(d.models.length>0){d.models.forEach(m=>{const run=d.running_models.includes(m);const st=run?'<span style="color:var(--green);font-size:0.6rem">&#9679; VRAM</span>':'<span style="font-size:0.6rem">READY</span>';const btn=run?' <button class="action-btn" style="font-size:0.5rem;padding:2px 5px" onclick="event.stopPropagation();doAction(\'unload_model\',{model:\''+m+'\'})">UNLOAD</button>':'';list.innerHTML+='<li onclick="showChat(\''+m+'\')"><span style="font-size:0.7rem">'+m+'</span><span>'+st+btn+'</span></li>'})}else{list.innerHTML='<li style="font-size:0.7rem">OLLAMA OFFLINE</li>'}
         const as=document.getElementById('ai-status');as.innerHTML=d.running_models.length>0?'<span style="color:var(--green);font-size:0.55rem">&#9679; '+d.running_models.length+' LOADED</span>':'<span style="color:var(--text-muted);font-size:0.55rem">&#9679; IDLE</span>';
         // Processes
-        const pl=document.getElementById('proc-list');const op=[...pl.querySelectorAll('.proc-item.open')].map(e=>e.dataset.pid);pl.innerHTML='';
-        d.processes.forEach(p=>{const io=op.includes(p.pid)?' open':'';const cn=p.command.split('/').pop().split(' ')[0];
-        pl.innerHTML+='<li class="proc-item'+io+'" data-pid="'+p.pid+'"><div class="proc-header" onclick="this.parentElement.classList.toggle(\'open\')"><span class="proc-name">'+cn+'</span><span class="proc-mem-badge">'+p.mem+'%</span><span class="proc-arrow">&#9660;</span></div><div class="proc-details"><div class="proc-detail-row"><span class="proc-detail-label">PID</span><span class="proc-detail-value">'+p.pid+'</span></div><div class="proc-detail-row"><span class="proc-detail-label">User</span><span class="proc-detail-value">'+p.user+'</span></div><div class="proc-detail-row"><span class="proc-detail-label">CPU</span><span class="proc-detail-value">'+p.cpu+'%</span></div><div class="proc-detail-row"><span class="proc-detail-label">RSS</span><span class="proc-detail-value">'+p.rss+'MB</span></div><div class="proc-detail-row"><span class="proc-detail-label">Cmd</span><span class="proc-detail-value" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.command+'</span></div><div style="display:flex;gap:4px;margin-top:4px"><button class="action-btn" style="font-size:0.5rem" onclick="event.stopPropagation();doAction(\'kill_process\',{pid:\''+p.pid+'\'})">KILL</button><button class="action-btn yellow" style="font-size:0.5rem" onclick="event.stopPropagation();doAction(\'kill9_process\',{pid:\''+p.pid+'\'})">KILL -9</button><button class="action-btn cyan" style="font-size:0.5rem" onclick="event.stopPropagation();doAction(\'renice\',{pid:\''+p.pid+'\',nice:\'10\'})">NICE+</button></div></div></li>'});
+        const pl=document.getElementById('proc-list');pl.innerHTML='';
+        d.processes.forEach(p=>{const cn=p.command.split('/').pop().split(' ')[0];
+        pl.innerHTML+='<li class="proc-item" data-pid="'+p.pid+'"><div class="proc-header" onclick="showProcess('+JSON.stringify(p).replace(/"/g,'&quot;')+')"><span class="proc-name">'+cn+'</span><span class="proc-mem-badge">'+p.mem+'%</span></div></li>'});
+        // Critical alerts
+        checkAlerts(d);
     })
 }
 
