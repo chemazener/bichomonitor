@@ -279,16 +279,25 @@ button:hover{background:rgba(255,77,77,0.25)}
         #screensaver{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:99998;display:none;cursor:none}
         #shell-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:10001;display:none;align-items:center;justify-content:center}
         #shell-overlay.open{display:flex}
-        .shell-window{width:75%;height:75%;background:rgba(8,8,12,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,77,77,0.25);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.6)}
-        .shell-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
-        .shell-title{font-size:1rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+        .shell-window{width:75%;height:75%;background:rgba(15,20,45,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(60,100,220,0.35);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(20,40,120,0.4)}
+        .shell-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(60,100,220,0.3);flex-shrink:0}
+        .shell-title{font-size:1rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#6090ff}
         .shell-close{color:var(--text-muted);cursor:pointer;font-size:1.3rem;font-weight:800;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;transition:color 0.2s}
         .shell-close:hover{color:var(--accent)}
         .shell-output{flex:1;overflow-y:auto;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;line-height:1.6;color:var(--green);white-space:pre-wrap;word-break:break-all}
         .shell-output .cmd-line{color:var(--cyan)}
         .shell-output .cmd-err{color:var(--accent)}
-        .shell-input-row{display:flex;align-items:center;padding:8px 16px;border-top:1px solid var(--border);gap:8px;flex-shrink:0}
-        .shell-prompt{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:700;white-space:nowrap}
+        .shell-input-row{display:flex;align-items:center;padding:8px 16px;border-top:1px solid rgba(60,100,220,0.3);gap:8px;flex-shrink:0}
+        .shell-prompt{color:#6090ff;font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:700;white-space:nowrap}
+        .modal.modal-blue{background:rgba(15,20,45,0.88);border-color:rgba(60,100,220,0.35);box-shadow:0 8px 40px rgba(20,40,120,0.4)}
+        .modal.modal-blue .modal-title{color:#6090ff}
+        .modal.modal-blue .modal-pre{border-color:rgba(60,100,220,0.2)}
+        .modal.modal-blue .action-btn{background:rgba(60,100,220,0.15);border-color:rgba(60,100,220,0.4);color:#6090ff}
+        .modal.modal-cyan{background:rgba(10,30,35,0.88);border-color:rgba(77,255,255,0.3);box-shadow:0 8px 40px rgba(20,80,100,0.4)}
+        .modal.modal-cyan .modal-title{color:var(--cyan)}
+        .modal.modal-cyan .svc-status{color:var(--cyan)}
+        .modal.modal-cyan .action-btn.green{color:var(--green);border-color:rgba(77,255,136,0.3)}
+        .modal.modal-cyan .action-btn.yellow{color:var(--yellow);border-color:rgba(255,216,77,0.3)}
         .shell-input{flex:1;background:transparent;border:none;color:var(--text-main);font-family:'JetBrains Mono',monospace;font-size:0.9rem;outline:none}
         @media(max-width:900px){.shell-window{width:95%;height:85%}}
 
@@ -570,7 +579,7 @@ function formatSpeed(bps){
     return Math.round(bps)+' B/s';
 }
 
-function openModal(html){document.getElementById('modal').innerHTML='<div class="modal-close" onclick="closeModal()">&#10005;</div>'+html;document.getElementById('modal-overlay').classList.add('open')}
+function openModal(html,cls){const m=document.getElementById('modal');m.className='modal'+(cls?' '+cls:'');m.innerHTML='<div class="modal-close" onclick="closeModal()">&#10005;</div>'+html;document.getElementById('modal-overlay').classList.add('open')}
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open')}
 
 function modalRow(label,val){return '<div class="modal-row"><span class="modal-label">'+esc(label)+'</span><span class="modal-val">'+esc(val)+'</span></div>'}
@@ -627,14 +636,14 @@ function showServices(){
     fetch('?detail=services').then(handleResponse).then(svcs=>{
         if(!svcs)return;
         let rows=svcs.map(s=>{const color=s.status==='active'?'var(--green)':'var(--accent)';return '<div class="svc-row"><span class="svc-name">'+esc(s.name)+'</span><span class="svc-status" style="color:'+color+'">'+esc(s.status).toUpperCase()+'</span><div class="svc-actions"><button class="action-btn green" onclick="doAction(\'start_service\',{service:\''+esc(s.name)+'\'});setTimeout(showServices,1000)">START</button><button class="action-btn" onclick="doAction(\'restart_service\',{service:\''+esc(s.name)+'\'});setTimeout(showServices,1000)">RESTART</button><button class="action-btn yellow" onclick="doAction(\'stop_service\',{service:\''+esc(s.name)+'\'});setTimeout(showServices,1000)">STOP</button></div></div>'}).join('');
-        openModal('<div class="modal-title">SERVICES</div>'+rows)
+        openModal('<div class="modal-title">SERVICES</div>'+rows,'modal-cyan')
     }).catch(()=>showToast('Error cargando servicios'))
 }
 function showLogs(unit){
     const u=unit||'';
     fetch('?detail=logs&lines=50&unit='+encodeURIComponent(u)).then(handleResponse).then(d=>{
         if(!d)return;
-        openModal('<div class="modal-title">SYSTEM LOGS</div><div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap"><button class="action-btn '+(u===''?'green':'')+'" onclick="showLogs()">ALL</button><button class="action-btn '+(u==='nginx'?'green':'')+'" onclick="showLogs(\'nginx\')">NGINX</button><button class="action-btn '+(u==='ollama'?'green':'')+'" onclick="showLogs(\'ollama\')">OLLAMA</button><button class="action-btn '+(u==='docker'?'green':'')+'" onclick="showLogs(\'docker\')">DOCKER</button><button class="action-btn '+(u==='ssh'?'green':'')+'" onclick="showLogs(\'ssh\')">SSH</button></div><div class="modal-pre" style="max-height:400px">'+esc(d.logs||'Sin logs')+'</div>')
+        openModal('<div class="modal-title">SYSTEM LOGS</div><div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap"><button class="action-btn '+(u===''?'green':'')+'" onclick="showLogs()">ALL</button><button class="action-btn '+(u==='nginx'?'green':'')+'" onclick="showLogs(\'nginx\')">NGINX</button><button class="action-btn '+(u==='ollama'?'green':'')+'" onclick="showLogs(\'ollama\')">OLLAMA</button><button class="action-btn '+(u==='docker'?'green':'')+'" onclick="showLogs(\'docker\')">DOCKER</button><button class="action-btn '+(u==='ssh'?'green':'')+'" onclick="showLogs(\'ssh\')">SSH</button></div><div class="modal-pre" style="max-height:400px">'+esc(d.logs||'Sin logs')+'</div>','modal-blue')
     }).catch(()=>showToast('Error cargando logs'))
 }
 function showChat(model){
