@@ -185,6 +185,13 @@ if(isset($_POST['action'])){
     elseif($a==='start_service'){$s=preg_replace('/[^a-z0-9_-]/','',($_POST['service']??''));shell_exec("sudo systemctl start $s 2>&1");echo json_encode(['ok'=>true,'msg'=>"$s iniciado"]);}
     elseif($a==='restart_kiosk'){echo json_encode(['ok'=>true,'msg'=>'Refrescando pantalla...']);shell_exec('sudo systemctl restart kiosk &');}
     elseif($a==='ping'){$h=escapeshellarg($_POST['host']??'');$r=shell_exec("ping -c 3 -W 2 $h 2>&1");echo json_encode(['ok'=>true,'msg'=>$r]);}
+    elseif($a==='shell'){
+        $cmd=$_POST['cmd']??'';
+        if(!$cmd){echo json_encode(['ok'=>false,'msg'=>'Comando vacio']);exit;}
+        $safe=escapeshellcmd($cmd);
+        $out=shell_exec($safe.' 2>&1');
+        echo json_encode(['ok'=>true,'output'=>$out??'']);exit;
+    }
     elseif($a==='chat'){
         $model=$_POST['model']??'';$prompt=$_POST['prompt']??'';
         $data=json_encode(['model'=>$model,'prompt'=>$prompt,'stream'=>false]);
@@ -268,6 +275,20 @@ button:hover{background:rgba(255,77,77,0.25)}
         .zoom-btn:hover{border-color:var(--accent);color:var(--accent)}
         .zoom-label{color:var(--text-muted);font-size:0.65rem;font-weight:700;display:flex;align-items:center;font-family:'JetBrains Mono',monospace}
         #screensaver{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:99998;display:none;cursor:none}
+        #shell-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:10001;display:none;align-items:center;justify-content:center}
+        #shell-overlay.open{display:flex}
+        .shell-window{width:75%;height:75%;background:rgba(8,8,12,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,77,77,0.25);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.6)}
+        .shell-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+        .shell-title{font-size:1rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+        .shell-close{color:var(--text-muted);cursor:pointer;font-size:1.3rem;font-weight:800;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;transition:color 0.2s}
+        .shell-close:hover{color:var(--accent)}
+        .shell-output{flex:1;overflow-y:auto;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;line-height:1.6;color:var(--green);white-space:pre-wrap;word-break:break-all}
+        .shell-output .cmd-line{color:var(--cyan)}
+        .shell-output .cmd-err{color:var(--accent)}
+        .shell-input-row{display:flex;align-items:center;padding:8px 16px;border-top:1px solid var(--border);gap:8px;flex-shrink:0}
+        .shell-prompt{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:700;white-space:nowrap}
+        .shell-input{flex:1;background:transparent;border:none;color:var(--text-main);font-family:'JetBrains Mono',monospace;font-size:0.9rem;outline:none}
+        @media(max-width:900px){.shell-window{width:95%;height:85%}}
 
         .gauge-card{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:border-color 0.3s,box-shadow 0.3s}
         .gauge-card:hover{border-color:rgba(255,77,77,0.4)}
@@ -391,6 +412,14 @@ button:hover{background:rgba(255,77,77,0.25)}
 <body>
 <div class="toast" id="toast"></div>
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+<div id="shell-overlay" onclick="if(event.target===this)closeShell()">
+    <div class="shell-window">
+        <div class="shell-header"><span class="shell-title">BICHO SHELL</span><div class="shell-close" onclick="closeShell()">&#10005;</div></div>
+        <div class="shell-output" id="shell-output"><span style="color:var(--text-muted)">Bienvenido a BICHO Shell. Escribe un comando y pulsa Enter.</span>
+</div>
+        <div class="shell-input-row"><span class="shell-prompt">$</span><input type="text" class="shell-input" id="shell-input" autocomplete="off" spellcheck="false" autofocus></div>
+    </div>
+</div>
 
 <div id="hero"><div class="orb-wrapper" id="orb-btn"><div class="orb"><div class="orb-inner"></div></div><div class="orb-label"><h1>BICHO</h1><p>AI SERVER ANALYTICS</p></div></div></div>
 
@@ -480,6 +509,7 @@ button:hover{background:rgba(255,77,77,0.25)}
 
         <div class="info-card" style="display:flex;flex-direction:column;gap:3px">
             <div class="label-sm" style="margin-bottom:1px">ACTIONS</div>
+            <button class="action-btn cyan" style="width:100%" onclick="event.stopPropagation();openShell()">SHELL</button>
             <button class="action-btn green" style="width:100%" onclick="event.stopPropagation();doAction('free_memory')">LIBERAR CACHE</button>
             <button class="action-btn" style="width:100%" onclick="event.stopPropagation();showServices()">SERVICES</button>
             <button class="action-btn cyan" style="width:100%" onclick="event.stopPropagation();showLogs()">LOGS</button>
@@ -753,6 +783,31 @@ function fetchStats(){
         checkAlerts(d);
     }).catch(e=>{console.error('fetchStats error:',e)}).finally(()=>{fetchInProgress=false})
 }
+
+// Shell
+const shellOverlay=document.getElementById('shell-overlay'),shellOutput=document.getElementById('shell-output'),shellInput=document.getElementById('shell-input');
+let shellHistory=[],shellHistIdx=-1,shellCwd='~';
+function openShell(){shellOverlay.classList.add('open');setTimeout(()=>shellInput.focus(),100)}
+function closeShell(){shellOverlay.classList.remove('open')}
+function appendShell(html){shellOutput.innerHTML+=html;shellOutput.scrollTop=shellOutput.scrollHeight}
+shellInput.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+        const cmd=shellInput.value.trim();shellInput.value='';
+        if(!cmd)return;
+        shellHistory.push(cmd);shellHistIdx=shellHistory.length;
+        appendShell('\n<span class="cmd-line">$ '+esc(cmd)+'</span>\n');
+        if(cmd==='clear'){shellOutput.innerHTML='';return}
+        fetch('',{method:'POST',body:new URLSearchParams({action:'shell',cmd:cmd,csrf_token:CSRF})}).then(handleResponse).then(d=>{
+            if(!d)return;
+            if(d.ok)appendShell(esc(d.output||'(sin salida)'));
+            else appendShell('<span class="cmd-err">'+esc(d.msg)+'</span>');
+        }).catch(()=>appendShell('<span class="cmd-err">Error de conexion</span>'));
+    }else if(e.key==='ArrowUp'){
+        e.preventDefault();if(shellHistIdx>0){shellHistIdx--;shellInput.value=shellHistory[shellHistIdx]}
+    }else if(e.key==='ArrowDown'){
+        e.preventDefault();if(shellHistIdx<shellHistory.length-1){shellHistIdx++;shellInput.value=shellHistory[shellHistIdx]}else{shellHistIdx=shellHistory.length;shellInput.value=''}
+    }else if(e.key==='Escape'){closeShell()}
+});
 
 // Zoom
 let zoomLevel=parseFloat(localStorage.getItem('bicho-zoom')||'100');
