@@ -254,21 +254,23 @@ button:hover{background:rgba(255,77,77,0.25)}
         html,body{width:100%;height:100%;min-height:100vh}
         body{background:var(--bg);color:var(--text-main);font-family:'Outfit',sans-serif;overflow:hidden;display:flex;flex-direction:column;background-image:linear-gradient(rgba(5, 5, 8, 0.8), rgba(5, 5, 8, 0.95)), url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=2560');background-size:cover;background-position:center;background-repeat:no-repeat;}
 
-        #hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:0.8s cubic-bezier(0.19,1,0.22,1);position:relative;z-index:200}
-        .orb-wrapper{position:relative;cursor:pointer;transition:0.5s}.orb-wrapper:hover{transform:scale(1.05)}
+        #hero{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;transition:0.8s cubic-bezier(0.19,1,0.22,1);z-index:200}
+        .orb-wrapper{cursor:pointer;transition:0.5s;display:flex;flex-direction:column;align-items:center}.orb-wrapper:hover{transform:scale(1.05)}
         .orb{width:200px;height:200px;border-radius:50%;border:2px solid var(--accent);box-shadow:0 0 50px var(--accent-glow);display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);animation:breathe 5s infinite ease-in-out}
         .orb-inner{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--accent),#1a0000);box-shadow:inset 0 0 40px rgba(0,0,0,0.8);filter:blur(1px)}
         @keyframes breathe{0%,100%{box-shadow:0 0 40px var(--accent-glow);transform:scale(1)}50%{box-shadow:0 0 80px var(--accent-glow);transform:scale(1.08)}}
-        .orb-label{margin-top:2.5rem;text-align:center}.orb-label h1{font-size:3rem;font-weight:900;letter-spacing:12px}.orb-label p{color:var(--accent);font-weight:600;letter-spacing:3px;font-size:0.75rem;opacity:0.8}
-        .shifted{position:fixed;top:5px;left:10px;transform:scale(0.15);transform-origin:top left;opacity:1;z-index:300;min-width:44px;min-height:44px}
+        .orb-label{margin-top:2.5rem}.orb-label h1{font-size:3rem;font-weight:900;letter-spacing:12px;text-align:center;margin-right:-12px}.orb-label p{color:var(--accent);font-weight:600;letter-spacing:3px;font-size:0.75rem;opacity:0.8;text-align:center;margin-right:-3px}
+        .shifted{position:fixed;top:0;left:0;transform:scale(0);opacity:0;pointer-events:none;z-index:-1}
 
         #dashboard{position:fixed;bottom:-100vh;left:0;width:100%;height:100vh;background:rgba(5,5,8,0.15);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:0.8s cubic-bezier(0.19,1,0.22,1);z-index:100;overflow:hidden}
         #dashboard.open{bottom:0}
         #dash-content{position:absolute;top:0;left:0;width:100%;height:100%;padding:12px 16px 8px 16px;display:grid;grid-template-columns:1fr 1fr 1fr 240px;grid-template-rows:auto 50px 1fr;gap:8px;transform-origin:top left;overflow:hidden}
 
-        .logout-orb{position:absolute;top:10px;left:12px;z-index:300;width:42px;height:42px;border-radius:50%;border:2px solid var(--accent);box-shadow:0 0 15px var(--accent-glow);background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;text-decoration:none}
+        .dash-branding{position:absolute;top:8px;left:12px;z-index:300;display:flex;align-items:center;gap:10px}
+        .logout-orb{width:42px;height:42px;border-radius:50%;border:2px solid var(--accent);box-shadow:0 0 15px var(--accent-glow);background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;text-decoration:none;flex-shrink:0}
         .logout-orb:hover{transform:scale(1.15);box-shadow:0 0 25px var(--accent-glow)}
         .logout-orb-inner{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--accent),#1a0000);box-shadow:inset 0 0 10px rgba(0,0,0,0.6)}
+        .dash-hostname{font-size:1.1rem;font-weight:900;letter-spacing:5px;color:var(--text-main);font-family:'Outfit',sans-serif;text-transform:uppercase;opacity:0.7}
         .close-btn{position:absolute;top:8px;right:16px;color:var(--text-muted);font-size:0.75rem;font-weight:800;cursor:pointer;letter-spacing:2px;text-transform:uppercase;z-index:300;padding:8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
         .zoom-controls{position:absolute;top:8px;right:100px;display:flex;gap:4px;z-index:300}
         .zoom-btn{width:32px;height:32px;border-radius:6px;background:var(--card);border:1px solid var(--border);color:var(--text-main);font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;transition:all 0.2s}
@@ -332,6 +334,7 @@ button:hover{background:rgba(255,77,77,0.25)}
         .action-btn:hover{background:rgba(255,77,77,0.25);transform:scale(1.05)}.action-btn:active{transform:scale(0.95)}
         .action-btn.green{background:rgba(77,255,136,0.1);border-color:rgba(77,255,136,0.3);color:var(--green)}
         .action-btn.cyan{background:rgba(77,255,255,0.1);border-color:rgba(77,255,255,0.3);color:var(--cyan)}
+        .action-btn.blue{background:rgba(60,100,220,0.15);border-color:rgba(60,100,220,0.4);color:#6090ff}
         .action-btn.yellow{background:rgba(255,216,77,0.1);border-color:rgba(255,216,77,0.3);color:var(--yellow)}
 
         .toast{position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--card);border:1px solid var(--accent);color:var(--text-main);padding:6px 20px;border-radius:10px;font-size:0.8rem;font-weight:600;z-index:99999;transition:transform 0.4s cubic-bezier(0.19,1,0.22,1)}
@@ -391,8 +394,9 @@ button:hover{background:rgba(255,77,77,0.25)}
             .shifted{transform:scale(0.2);min-width:50px;min-height:50px}
             .close-btn{font-size:0.85rem;padding:10px;min-width:50px;min-height:50px}
             .zoom-controls{right:70px}
-            .logout-orb{width:36px;height:36px;top:8px;left:8px}
-            .logout-orb-inner{width:22px;height:22px}
+            .logout-orb{width:34px;height:34px}
+            .logout-orb-inner{width:20px;height:20px}
+            .dash-hostname{font-size:0.85rem;letter-spacing:3px}
             .chart-legend{display:none}
         }
         @media(max-width:480px){
@@ -421,12 +425,12 @@ button:hover{background:rgba(255,77,77,0.25)}
     </div>
 </div>
 
-<div id="hero"><div class="orb-wrapper" id="orb-btn"><div class="orb"><div class="orb-inner"></div></div><div class="orb-label"><h1>BICHO</h1><p>AI SERVER ANALYTICS</p></div></div></div>
+<div id="hero"><div class="orb-wrapper" id="orb-btn"><div class="orb"><div class="orb-inner"></div></div><div class="orb-label"><h1><?=strtoupper(gethostname())?></h1><p>BICHO AI SERVER ANALYTICS</p></div></div></div>
 
 <div id="screensaver"></div>
 <div id="dashboard">
 <div id="dash-content">
-    <a href="?logout" class="logout-orb" title="Logout"><div class="logout-orb-inner"></div></a>
+    <div class="dash-branding"><a href="?logout" class="logout-orb" title="Logout"><div class="logout-orb-inner"></div></a><span class="dash-hostname"><?=strtoupper(gethostname())?></span></div>
     <div class="zoom-controls"><button class="zoom-btn" onclick="zoomOut()">-</button><span class="zoom-label" id="zoom-label">100%</span><button class="zoom-btn" onclick="zoomIn()">+</button></div>
     <div class="close-btn" id="close-btn">CLOSE</div>
 
@@ -509,13 +513,13 @@ button:hover{background:rgba(255,77,77,0.25)}
 
         <div class="info-card" style="display:flex;flex-direction:column;gap:3px">
             <div class="label-sm" style="margin-bottom:1px">ACTIONS</div>
-            <button class="action-btn cyan" style="width:100%" onclick="event.stopPropagation();openShell()">SHELL</button>
+            <button class="action-btn blue" style="width:100%" onclick="event.stopPropagation();openShell()">SHELL</button>
+            <button class="action-btn blue" style="width:100%" onclick="event.stopPropagation();showLogs()">LOGS</button>
+            <button class="action-btn cyan" style="width:100%" onclick="event.stopPropagation();showServices()">SERVICES</button>
             <button class="action-btn green" style="width:100%" onclick="event.stopPropagation();doAction('free_memory')">LIBERAR CACHE</button>
-            <button class="action-btn" style="width:100%" onclick="event.stopPropagation();showServices()">SERVICES</button>
-            <button class="action-btn cyan" style="width:100%" onclick="event.stopPropagation();showLogs()">LOGS</button>
-            <button class="action-btn" style="width:100%" onclick="event.stopPropagation();location.reload()">REFRESH</button>
-            <button class="action-btn yellow" style="width:100%" onclick="event.stopPropagation();confirmAction('reboot','Reiniciar equipo?')">REBOOT</button>
-            <button class="action-btn" style="width:100%" onclick="event.stopPropagation();confirmAction('shutdown','Apagar equipo?')">SHUTDOWN</button>
+            <button class="action-btn yellow" style="width:100%" onclick="event.stopPropagation();location.reload()">REFRESH</button>
+            <button class="action-btn" style="width:100%;background:rgba(255,77,77,0.15);border-color:rgba(255,77,77,0.4)" onclick="event.stopPropagation();confirmAction('reboot','Reiniciar equipo?')">REBOOT</button>
+            <button class="action-btn" style="width:100%;background:rgba(255,77,77,0.15);border-color:rgba(255,77,77,0.4)" onclick="event.stopPropagation();confirmAction('shutdown','Apagar equipo?')">SHUTDOWN</button>
         </div>
 
         <div class="ai-panel">
